@@ -135,6 +135,7 @@
       var ws = null;
       var closedByMe = false;
       var reconnectTimer = null;
+      var myMids = {};
       var name = '访客' + Math.random().toString(36).slice(2, 6);
 
       var dot = document.getElementById('dot');
@@ -144,27 +145,32 @@
       var msgInput = document.getElementById('msgInput');
       var sendBtn = document.getElementById('sendBtn');
 
+      function str(v, max) {
+        if (v === null || v === undefined) return '';
+        return String(v).slice(0, max || 2000);
+      }
+
       function setStatus(txt, cls) {
-        statusText.textContent = txt;
+        statusText.textContent = str(txt);
         dot.className = cls || '';
       }
 
-      function log(text, mine) {
+      function log(from, text, mine) {
         var d = document.createElement('div');
         if (mine === null) {
           d.className = 'msg sys';
-          d.textContent = text;
+          d.textContent = str(text);
         } else {
           d.className = 'msg ' + (mine ? 'me' : 'them');
           if (!mine) {
             var who = document.createElement('span');
             who.className = 'who';
-            who.textContent = text.from;
+            who.textContent = str(from, 20);
             d.appendChild(who);
           }
           var body = document.createElement('span');
-          body.textContent = text.text;
-          if (!mine) body.style.whiteSpace = 'pre-wrap';
+          body.textContent = str(text);
+          body.style.whiteSpace = 'pre-wrap';
           d.appendChild(body);
         }
         chat.appendChild(d);
@@ -193,10 +199,13 @@
         };
         s.onmessage = function (e) {
           if (s !== ws) return;
+          if (typeof e.data !== 'string') return;
           var d;
           try { d = JSON.parse(e.data); } catch (err) { return; }
-          if (d.type === 'msg') log(d, false);
-          else if (d.type === 'sys') log(d.text, null);
+          if (!d || typeof d !== 'object') return;
+          if (d.mid && myMids[d.mid]) return;
+          if (d.type === 'msg') log(str(d.from), str(d.text), false);
+          else if (d.type === 'sys') log('', d.text, null);
         };
         s.onclose = function () {
           if (s !== ws) return;
@@ -215,17 +224,19 @@
       }
 
       function send() {
-        var t = msgInput.value.trim();
+        var t = str(msgInput.value).trim();
         if (!t) return;
         if (!ws || ws.readyState !== 1) {
-          log({ from: '', text: '尚未连接,无法发送' }, null);
+          log('', '尚未连接,无法发送', null);
           setStatus('尚未连接', 'busy');
           return;
         }
         var val = nameEl.value.trim();
         if (val) name = val.slice(0, 20);
-        ws.send(JSON.stringify({ type: 'msg', from: name, text: t }));
-        log({ from: '我 (' + name + ')', text: t }, true);
+        var mid = String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7);
+        myMids[mid] = 1;
+        ws.send(JSON.stringify({ type: 'msg', from: name, text: t, mid: mid }));
+        log('', t, true);
         msgInput.value = '';
       }
 
