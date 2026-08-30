@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>留言板 — Web</title>
+<meta name="description" content="留言板 · 每次点击随机展示一条">
+<style>
+  :root {
+    --accent: #0078d7;
+    --accent-dark: #106ebe;
+    --border: #e2e2e2;
+    --surface: #f4f6f8;
+    --text: #1b1b1b;
+    --text-2: #5f5f5f;
+    font-family: 'Segoe UI Variable', 'Segoe UI', -apple-system, BlinkMacSystemFont,
+      'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; background: #fff; color: var(--text); overflow: hidden; }
+
+  header {
+    flex: none;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--accent);
+    color: #fff;
+    padding: 10px 14px;
+  }
+  header b { font-size: 14px; }
+  header span { margin-left: auto; font-size: 12px; color: rgba(255, 255, 255, 0.92); }
+
+  .stage {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    user-select: none;
+  }
+  .card {
+    cursor: pointer;
+    background: var(--accent);
+    color: #fff;
+    width: 100%;
+    max-width: 620px;
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 34px;
+    font-size: 22px;
+    line-height: 1.7;
+    text-align: center;
+    transition: font-size 0.12s, transform 0.12s;
+  }
+  .card:active { transform: scale(0.98); }
+  .card .q { opacity: 0.5; margin-right: 10px; font-size: 30px; }
+  .hint { margin-top: 14px; font-size: 12px; color: var(--text-2); }
+
+  #writebar {
+    flex: none;
+    display: flex; gap: 8px;
+    padding: 12px;
+    background: #fff;
+    border-top: 1px solid var(--border);
+    max-width: 620px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  #msgInput {
+    flex: 1; min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    outline: none;
+    font-family: inherit;
+  }
+  #msgInput:focus { border-color: var(--accent); }
+  button {
+    cursor: pointer;
+    padding: 8px 16px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-size: 12.5px;
+    font-family: inherit;
+    flex: none;
+  }
+  button:hover { background: var(--accent-dark); }
+</style>
+</head>
+<body>
+
+  <header>
+    <b>留言板</b>
+    <span>点击卡片,随机展示一条</span>
+  </header>
+
+  <div class="stage">
+    <div class="card" id="card"><span class="q">&ldquo;</span><span id="msg"></span><span class="q">&rdquo;</span></div>
+    <p class="hint">点击卡片或下方按钮,随机切换一条留言 · 你的留言会存到本地</p>
+  </div>
+
+  <div id="writebar">
+    <input id="msgInput" placeholder="留一句想说的话…">
+    <button id="addBtn">留一句</button>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var PRESET = [
+        '欢迎光临,留下你的脚印吧。',
+        '今天也要加油鸭。',
+        '默默耕耘,静待花开。',
+        '愿每次点击都有好心情。',
+        '少即是多,平即是真。',
+        '把小事做好,就是大事。',
+        '来都来了,说点什么呗。',
+        '保持好奇,世界很大。',
+      ];
+
+      var KEY = 'web-guestbook';
+      var card = document.getElementById('card');
+      var msgEl = document.getElementById('msg');
+      var msgInput = document.getElementById('msgInput');
+      var last = -1;
+
+      function str(v) {
+        if (v === null || v === undefined) return '';
+        return String(v).trim();
+      }
+
+      function loadAdded() {
+        try {
+          var a = JSON.parse(localStorage.getItem(KEY));
+          if (Array.isArray(a)) return a.filter(function (s) { return typeof s === 'string' && s.trim(); });
+        } catch (e) {}
+        return [];
+      }
+
+      function saveAdded(a) {
+        try { localStorage.setItem(KEY, JSON.stringify(a)); } catch (e) {}
+      }
+
+      function pick() {
+        var all = PRESET.concat(loadAdded());
+        if (!all.length) return;
+        var i;
+        if (all.length <= 1) i = 0;
+        else {
+          do { i = Math.floor(Math.random() * all.length); } while (i === last);
+        }
+        last = i;
+        msgEl.textContent = str(all[i]);
+      }
+
+      card.onclick = pick;
+      document.getElementById('addBtn').onclick = function () {
+        var t = str(msgInput.value);
+        if (!t) return;
+        var added = loadAdded();
+        added.push(t.slice(0, 200));
+        saveAdded(added);
+        msgInput.value = '';
+        msgEl.textContent = t.slice(0, 200);
+        last = -1;
+      };
+      msgInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') document.getElementById('addBtn').click(); });
+
+      pick();
+    })();
+  </script>
+</body>
+</html>
