@@ -196,11 +196,11 @@
   .htile::after {
     content: '';
     position: absolute;
-    left: 50%; top: 50%;
-    width: 130px; height: 130px;
+    width: 120px; height: 120px;
+    left: var(--mx, 50%); top: var(--my, 50%);
     transform: translate(-50%, -50%);
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 70%);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 70%);
     opacity: 0;
     transition: opacity 0.25s ease;
     pointer-events: none;
@@ -365,6 +365,13 @@
           saveOrder();
           renderContent();
         });
+        var trackBlob = function (e) {
+          var r = b.getBoundingClientRect();
+          b.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+          b.style.setProperty('--my', (e.clientY - r.top) + 'px');
+        };
+        b.addEventListener('mouseenter', trackBlob);
+        b.addEventListener('mousemove', trackBlob);
         b.addEventListener('dragover', function (e) {
           e.preventDefault();
           if (!dragId || dragId === t.id) return;
