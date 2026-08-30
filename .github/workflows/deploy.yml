@@ -23,7 +23,7 @@ jobs:
         run: |
           mkdir -p dist
           cp index-home.html dist/index.html
-          cp 403.html 404.html 500.html morphicons-single.html dist/ || true
+          cp 403.html 404.html 500.html morphicons-single.html chat.html dist/ || true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
