@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>聊天 — Web</title>
+<title>聊天 v3 — Web</title>
 <meta name="description" content="人与人实时点对点聊天 (WebRTC)">
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
@@ -211,9 +211,14 @@
           setStatus('尚未连接', 'busy');
           return;
         }
-        conn.send(t);
-        log(t, true);
-        msgInput.value = '';
+        try {
+          conn.send(t);
+          log(t, true);
+          msgInput.value = '';
+        } catch (e) {
+          log('发送失败: ' + (e && e.message ? e.message : String(e)), null);
+          setStatus('发送失败', 'busy');
+        }
       }
 
       document.getElementById('sendBtn').onclick = send;
