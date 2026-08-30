@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>聊天 — Web</title>
+<meta name="description" content="人与人实时点对点聊天 (WebRTC)">
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+  :root {
+    --accent: #0078d7;
+    --accent-dark: #106ebe;
+    --border: #e2e2e2;
+    --surface: #f4f6f8;
+    --text: #1b1b1b;
+    --text-2: #5f5f5f;
+    font-family: 'Segoe UI Variable', 'Segoe UI', -apple-system, BlinkMacSystemFont,
+      'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; background: #fff; color: var(--text); overflow: hidden; }
+
+  header {
+    flex: none;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--accent);
+    color: #fff;
+    padding: 10px 14px;
+  }
+  header b { font-size: 14px; }
+  #status {
+    margin-left: auto;
+    font-size: 12px;
+    display: flex; align-items: center; gap: 6px;
+    color: rgba(255, 255, 255, 0.92);
+  }
+  #dot { width: 8px; height: 8px; background: rgba(255, 255, 255, 0.5); }
+  #dot.on { background: #8fff8f; }
+  #dot.busy { background: #ffe27f; }
+
+  #panel {
+    flex: none;
+    padding: 10px 14px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .p-row { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+  .p-label { width: 52px; font-size: 12px; color: var(--text-2); flex: none; }
+  .p-input {
+    flex: 1; min-width: 0;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-size: 13px;
+    outline: none;
+    font-family: inherit;
+    color: var(--text);
+  }
+  .p-input:focus { border-color: var(--accent); }
+  button {
+    cursor: pointer;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-size: 12.5px;
+    font-family: inherit;
+    color: var(--text);
+    flex: none;
+  }
+  button.primary { background: var(--accent); border: none; color: #fff; }
+  button.primary:hover { background: var(--accent-dark); }
+  button.ghost:hover { background: #e8edf2; }
+  .hint { font-size: 11px; color: var(--text-2); margin: 5px 2px 0; }
+
+  #chat {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px 0;
+    background: #fff;
+  }
+  .msg {
+    max-width: 72%;
+    padding: 8px 11px;
+    margin: 6px 12px;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+    clear: both;
+  }
+  .msg.them { float: left; background: #eff1f3; color: var(--text); border: 1px solid var(--border); }
+  .msg.me { float: right; background: var(--accent); color: #fff; }
+  .msg.sys { float: none; margin: 6px auto; max-width: none; text-align: center; font-size: 11px; color: var(--text-2); background: none; border: none; clear: both; }
+
+  #inputbar {
+    flex: none;
+    display: flex; gap: 8px;
+    padding: 10px 12px;
+    background: #fff;
+    border-top: 1px solid var(--border);
+  }
+  #msgInput { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--border); font-size: 13px; outline: none; font-family: inherit; }
+  #msgInput:focus { border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+  <header>
+    <b>聊天</b>
+    <span id="status"><span id="dot"></span><span id="statusText">初始化…</span></span>
+  </header>
+
+  <div id="panel">
+    <div class="p-row">
+      <span class="p-label">我的 ID</span>
+      <input class="p-input" id="myId" readonly>
+      <button class="ghost" id="copyBtn">复制</button>
+    </div>
+    <div class="p-row">
+      <span class="p-label">对方 ID</span>
+      <input class="p-input" id="targetId" placeholder="粘贴对方页面的 ID">
+      <button class="primary" id="connectBtn">连接</button>
+    </div>
+    <p class="hint">两端分别打开此页,互填对方的 ID 即可直连对话。WebRTC 点对点传输,不经过服务器存储。需要联网。</p>
+  </div>
+
+  <div id="chat"></div>
+
+  <div id="inputbar">
+    <input id="msgInput" placeholder="输入消息,回车发送">
+    <button class="primary" id="sendBtn">发送</button>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+      var peer = null, conn = null, peerReady = false, pendingId = null;
+      var myId = 'chat' + Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 4);
+
+      var dot = document.getElementById('dot');
+      var statusText = document.getElementById('statusText');
+      var chat = document.getElementById('chat');
+      var myIdEl = document.getElementById('myId');
+      var targetIdEl = document.getElementById('targetId');
+      var msgInput = document.getElementById('msgInput');
+
+      myIdEl.value = myId;
+      document.getElementById('copyBtn').onclick = function () {
+        if (navigator.clipboard) { navigator.clipboard.writeText(myId); }
+        this.textContent = '已复制';
+        var self = this;
+        setTimeout(function () { self.textContent = '复制'; }, 1200);
+      };
+
+      function setStatus(txt, cls) {
+        statusText.textContent = txt;
+        dot.className = cls || '';
+      }
+
+      function log(text, mine) {
+        var d = document.createElement('div');
+        d.className = 'msg' + (mine === null ? ' sys' : (mine ? ' me' : ' them'));
+        d.textContent = text;
+        chat.appendChild(d);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function wire(c) {
+        c.on('open', function () {
+          setStatus('已连接 → ' + c.peer, 'on');
+          log('— 已建立连接 —', null);
+        });
+        c.on('data', function (d) { if (typeof d === 'string') log(d, false); });
+        c.on('close', function () {
+          if (conn === c) conn = null;
+          setStatus('对方已断开', 'busy');
+          log('— 连接已断开 —', null);
+        });
+        c.on('error', function (e) { setStatus('连接错误', 'busy'); });
+      }
+
+      function doConnect(id) {
+        pendingId = null;
+        setStatus('正在连接…', 'busy');
+        try {
+          conn = peer.connect(id, { reliable: true });
+          wire(conn);
+          setStatus('等待对方接受…', 'busy');
+        } catch (e) {
+          setStatus('连接失败', 'busy');
+        }
+      }
+
+      function connect() {
+        var id = targetIdEl.value.trim();
+        if (!id) return;
+        if (!peerReady) { pendingId = id; setStatus('等待就绪后自动连接…', 'busy'); return; }
+        doConnect(id);
+      }
+
+      document.getElementById('connectBtn').onclick = connect;
+      targetIdEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') connect(); });
+
+      function send() {
+        var t = msgInput.value.trim();
+        if (!t) return;
+        if (!conn || typeof conn.open !== 'function' || !conn.open) {
+          log('尚未连接,无法发送', null);
+          setStatus('尚未连接', 'busy');
+          return;
+        }
+        conn.send(t);
+        log(t, true);
+        msgInput.value = '';
+      }
+
+      document.getElementById('sendBtn').onclick = send;
+      msgInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') send(); });
+
+      if (typeof Peer === 'undefined') {
+        setStatus('无法加载聊天库(需要联网)', 'busy');
+        return;
+      }
+
+      try {
+        peer = new Peer(myId);
+        peer.on('open', function () {
+          peerReady = true;
+          setStatus('在线,等待对方连接或填入对方 ID', 'on');
+          if (pendingId) doConnect(pendingId);
+        });
+        peer.on('connection', function (c) {
+          if (conn && c.peer === conn.peer) return;
+          conn = c;
+          wire(c);
+          setStatus('对方已连入,等待连接确立', 'busy');
+        });
+        peer.on('disconnected', function () {
+          peerReady = false;
+          setStatus('与信令服务器断开,尝试重连…', 'busy');
+          if (peer && typeof peer.reconnect === 'function') peer.reconnect();
+        });
+        peer.on('error', function (e) {
+          if (e && e.type === 'peer-unavailable') setStatus('对方 ID 无效或不在线', 'busy');
+          else setStatus('网络错误', 'busy');
+        });
+      } catch (e) {
+        setStatus('初始化失败', 'busy');
+      }
+    })();
+  </script>
+</body>
+</html>
