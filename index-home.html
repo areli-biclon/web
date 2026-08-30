@@ -27,7 +27,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 32px 16px 90px;
+    padding: 32px 16px;
   }
 
   /* ---------- window frame ---------- */
@@ -50,6 +50,10 @@
     user-select: none;
   }
   .titlebar .title { font-size: 12px; color: var(--text-2); flex: 1; }
+  .tb-clock {
+    font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums;
+    padding-right: 10px;
+  }
   .titlebar .dot { width: 12px; height: 12px; border-radius: 0; margin-left: 8px; }
   .dot.min { background: #f3b48c; }
   .dot.max { background: #f6dd8a; }
@@ -114,37 +118,6 @@
     border-top: 1px solid var(--border);
   }
 
-  /* ---------- taskbar ---------- */
-  .taskbar {
-    position: fixed;
-    left: 50%;
-    bottom: 14px;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
-    background: rgba(250, 250, 250, 0.78);
-    backdrop-filter: blur(14px);
-    border: 1px solid var(--border);
-    border-radius: 0;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  }
-  .tb-icon, .tb { border: none; background: transparent; border-radius: 0; padding: 6px; cursor: default; display: flex; align-items: center; }
-  .tb-icon svg { width: 20px; height: 20px; color: var(--text); }
-  .tb-icon:hover { background: rgba(0, 0, 0, 0.06); }
-  .tb.pill {
-    font-size: 12px;
-    color: var(--text-2);
-    background: rgba(0, 0, 0, 0.05);
-    padding: 6px 14px;
-  }
-  .tb-clock {
-    font-size: 12px; color: var(--text); padding: 6px 8px; font-variant-numeric: tabular-nums;
-  }
-  .tb-sep { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
-  .tb .winlogo { width: 20px; height: 20px; }
-
   @media (max-width: 480px) {
     .content { padding: 24px 20px; }
     .grid { grid-template-columns: 1fr 1fr; }
@@ -156,6 +129,7 @@
   <div class="window">
     <div class="titlebar">
       <span class="title">Web · 主页</span>
+      <span class="tb-clock" id="clock">--:--</span>
       <span class="dot dot-min"></span>
       <span class="dot dot-max"></span>
       <span class="dot dot-close"></span>
@@ -187,27 +161,6 @@
 
       <p class="foot-note">基于 GitHub Pages · Cloudflare 亦可托管 · Windows Fluent 风格</p>
     </div>
-  </div>
-
-  <div class="taskbar">
-    <span class="tb-icon">
-      <svg class="winlogo" viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="#2b6cb0" d="M0 3.3 9.9 1.9v9.4H0z"/>
-        <path fill="#3f8455" d="M11 1.8 24 0v11.3H11z"/>
-        <path fill="#a8862f" d="M0 12.7h9.9v9.4L0 20.7z"/>
-        <path fill="#b0553f" d="M11 12.7H24V24L11 22.2z"/>
-      </svg>
-    </span>
-    <span class="tb-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-    </span>
-    <span class="tb-sep"></span>
-    <span class="tb pill">Web 主页</span>
-    <span class="tb-sep"></span>
-    <span class="tb">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="1" y="4" width="22" height="16" rx="3"/><path d="M7 9h4"/><path d="M7 13h2"/><path d="M16 9h1"/><path d="M16 13h1"/><path d="M13 11h1"/></svg>
-    </span>
-    <span class="tb tb-clock" id="clock">--:--</span>
   </div>
 
   <script>
