@@ -27,7 +27,7 @@ jobs:
       - run: npm run build
       - name: Copy custom error pages into build output
         run: |
-          cp 403.html 404.html 500.html dist/ 2>/dev/null || true
+          cp 403.html 404.html 500.html morphicons-single.html dist/ 2>/dev/null || true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
