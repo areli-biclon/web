@@ -110,13 +110,21 @@
   }
   .tabbar {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: 4px;
-    padding: 6px 8px;
-    border-bottom: 1px solid var(--border);
+    padding: 6px 8px 0;
     background: var(--surface-2);
     overflow-x: auto;
     flex: none;
+    position: relative;
+  }
+  .tabbar::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 1px;
+    background: var(--border);
+    pointer-events: none;
   }
   .tab {
     display: flex;
@@ -130,11 +138,15 @@
     cursor: pointer;
     font-family: inherit;
     white-space: nowrap;
+    position: relative;
+    z-index: 1;
   }
   .tab:hover { background: rgba(0, 0, 0, 0.06); }
   .tab.active {
     background: #fff;
     color: var(--text);
+    padding-bottom: 8px;
+    margin-bottom: -1px;            /* 盖住底部分隔线,与页面连成一体 */
     box-shadow: 0 0 0 1px var(--border);
   }
   .tab .close {
@@ -192,6 +204,8 @@
   }
   .htile:hover {
     background: var(--accent);            /* hover 不变色 */
+    outline: 1px solid #d7ecfb;           /* 淡蓝色框 */
+    outline-offset: -1px;
   }
   .htile::after {
     content: '';
