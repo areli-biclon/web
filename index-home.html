@@ -189,9 +189,8 @@
     user-select: none;
   }
   .htile:hover {
-    background: var(--accent);            /* hover 不变暗 */
-    outline: 1px solid #cfe8fb;           /* 边上多一圈淡蓝色框架,像压下去 */
-    outline-offset: -1px;
+    background: var(--accent);            /* hover 不变色 */
+    filter: brightness(1.12);             /* 像有一束光照上去,轻微变亮 */
   }
   .htile:active { cursor: grabbing; transform: scale(0.95); }  /* 按下缩小,松开回弹 */
   .htile.dragging { opacity: 0.5; }
