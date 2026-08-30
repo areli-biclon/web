@@ -14,7 +14,7 @@
     --text: #1b1b1b;
     --text-2: #5f5f5f;
     --accent: #0067c0;
-    --accent-soft: #cfe6f5;
+    --accent-soft: #e3f0fa;
     --shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     font-family: 'Segoe UI Variable', 'Segoe UI', -apple-system, BlinkMacSystemFont,
       'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -27,19 +27,23 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 32px 16px;
+    padding: 16px;
   }
 
-  /* ---------- window frame ---------- */
   .window {
     width: 100%;
-    max-width: 720px;
+    max-width: 1080px;
+    height: 100%;
+    max-height: 760px;
+    display: flex;
+    flex-direction: column;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 0;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
     overflow: hidden;
   }
+
+  /* ---------- titlebar ---------- */
   .titlebar {
     display: flex;
     align-items: center;
@@ -54,73 +58,159 @@
     font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums;
     padding-right: 10px;
   }
-  .titlebar .dot { width: 12px; height: 12px; border-radius: 0; margin-left: 8px; }
+  .titlebar .dot { width: 12px; height: 12px; margin-left: 6px; }
   .dot.min { background: #f3b48c; }
   .dot.max { background: #f6dd8a; }
   .dot.close { background: #f2a4a0; }
 
-  /* ---------- content ---------- */
-  .content { padding: 40px 40px 36px; }
-  .head h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.3px; }
-  .head p { margin-top: 8px; font-size: 13.5px; color: var(--text-2); }
-
-  /* start-style tile grid */
-  .grid {
-    margin-top: 30px;
+  /* ---------- 3:7 body ---------- */
+  .body-row {
+    flex: 1;
+    min-height: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: 3fr 7fr;
+  }
+
+  /* ---------- left: page sidebar ---------- */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    background: var(--surface-2);
+    padding: 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sgroup-title {
+    font-size: 11px;
+    color: var(--text-2);
+    padding: 10px 8px 4px;
+  }
+  .sitem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: var(--text);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    font-family: inherit;
+  }
+  .sitem svg { width: 15px; height: 15px; color: var(--text-2); flex: none; }
+  .sitem:hover { background: rgba(0, 0, 0, 0.06); }
+  .sitem:active { background: rgba(0, 0, 0, 0.1); }
+
+  /* ---------- right: tabs ---------- */
+  .main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    background: #fff;
+  }
+  .tabbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+    overflow-x: auto;
+    flex: none;
+  }
+  .tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px 6px 12px;
+    font-size: 12px;
+    color: var(--text-2);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .tab:hover { background: rgba(0, 0, 0, 0.06); }
+  .tab.active {
+    background: #fff;
+    color: var(--text);
+    box-shadow: 0 0 0 1px var(--border);
+  }
+  .tab .close {
+    width: 16px; height: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; line-height: 1; color: var(--text-2);
+    border-radius: 0;
+  }
+  .tab .close:hover { background: rgba(0, 0, 0, 0.15); color: var(--text); }
+
+  .content {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+  }
+  .content iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #fff;
+  }
+  .pg { display: none; height: 100%; overflow-y: auto; }
+  .pg.active { display: block; }
+
+  /* inline home content */
+  .home-content { padding: 32px; }
+  .home-content h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.3px; }
+  .home-content p.sub { margin-top: 8px; font-size: 13.5px; color: var(--text-2); }
+  .home-grid {
+    margin-top: 26px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
-  .tile {
+  .htile {
     display: flex;
     flex-direction: column;
     gap: 10px;
     align-items: flex-start;
-    padding: 14px;
+    padding: 16px 14px;
     background: #fff;
     border: 1px solid var(--border);
-    border-radius: 0;
-    text-decoration: none;
     color: var(--text);
-    transition: border-color 0.12s, box-shadow 0.12s, transform 0.12s;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color 0.12s, box-shadow 0.12s;
+    font-family: inherit;
+    text-align: left;
   }
-  .tile:hover {
-    border-color: var(--accent);
-    box-shadow: var(--shadow);
-    transform: translateY(-1px);
-  }
-  .tile .icon {
-    width: 42px; height: 42px;
-    border-radius: 0;
+  .htile:hover { border-color: var(--accent); box-shadow: var(--shadow); }
+  .htile .icon {
+    width: 40px; height: 40px;
     display: flex; align-items: center; justify-content: center;
   }
-  .tile .icon svg { width: 24px; height: 24px; }
-  .tile .name { font-size: 13px; font-weight: 500; }
-  .tile .desc { font-size: 11.5px; color: var(--text-2); line-height: 1.5; }
-
-  /* tile icon tints (flat, low saturation) */
-  .t-blue  { background: #dbe9f6; }
-  .t-red   { background: #f6dcd7; }
-  .t-amber { background: #f6ecd2; }
-  .t-green { background: #d9ede0; }
-  .t-gray  { background: #e8e8e6; }
-  .t-blue svg  { color: #2b6cb0; }
-  .t-red svg   { color: #b0553f; }
-  .t-amber svg { color: #a8862f; }
-  .t-green svg { color: #3f8455; }
-  .t-gray svg  { color: #6b6b6b; }
-
+  .htile .icon svg { width: 22px; height: 22px; color: var(--text-2); }
+  .htile .name { font-size: 13px; font-weight: 500; }
+  .htile .desc { font-size: 11.5px; color: var(--text-2); line-height: 1.5; }
   .foot-note {
-    margin-top: 28px;
+    margin-top: 26px;
     font-size: 11.5px;
     color: var(--text-2);
-    padding-top: 16px;
+    padding-top: 14px;
     border-top: 1px solid var(--border);
   }
 
-  @media (max-width: 480px) {
-    .content { padding: 24px 20px; }
-    .grid { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 640px) {
+    .body-row { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    .sidebar { flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--border); }
+    .sgroup-title { display: none; }
   }
 </style>
 </head>
@@ -135,44 +225,176 @@
       <span class="dot dot-close"></span>
     </div>
 
-    <div class="content">
-      <div class="head">
-        <h1>Web</h1>
-        <p>个人网页集合 · 扁平化主页</p>
+    <div class="body-row">
+      <!-- 左边:页面栏 (3) -->
+      <nav class="sidebar" id="sidebar"></nav>
+
+      <!-- 右边:标签页 (7) -->
+      <div class="main">
+        <div class="tabbar" id="tabbar"></div>
+        <div class="content" id="content"></div>
       </div>
-
-      <div class="grid">
-        <a class="tile" href="/web/morphicons-single.html">
-          <span class="icon t-blue">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9l-3-3M21 8l-3 3-3-3"/><path d="M3 16h9l-3-3M21 16l-3-3-3 3"/></svg>
-          </span>
-          <span class="name">Morphicons 演示</span>
-          <span class="desc">图标平滑形变 · 单文件离线可用</span>
-        </a>
-
-        <a class="tile" href="https://github.com/areli-biclon/web">
-          <span class="icon t-gray">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
-          </span>
-          <span class="name">GitHub</span>
-          <span class="desc">areli-biclon/web · 源码与部署</span>
-        </a>
-      </div>
-
-      <p class="foot-note">基于 GitHub Pages · Cloudflare 亦可托管 · Windows Fluent 风格</p>
     </div>
   </div>
 
   <script>
     (function () {
-      var el = document.getElementById('clock');
+      'use strict';
+
+      // ---- pages registry ----
+      var PAGES = {
+        home: { title: '主页', icon: 'home' },
+        morph: { title: 'Morphicons 演示', icon: 'morph' },
+        p403: { title: '403 页面', icon: 'lock' },
+        p404: { title: '404 页面', icon: 'search' },
+        p500: { title: '500 页面', icon: 'wrench' },
+      };
+      var SLUGS = { morph: '/web/morphicons-single.html', p403: '/web/403.html', p404: '/web/404.html', p500: '/web/500.html' };
+
+      var GLYPH = {
+        home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>',
+        morph: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9l-3-3M21 8l-3 3-3-3"/><path d="M3 16h9l-3-3M21 16l-3-3-3 3"/></svg>',
+        lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+        search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+        wrench: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a1 1 0 0 0 0-1.4l-1.6-1.6a1 1 0 0 0-1.4 0z"/><path d="m4 20 5.3-5.3a1 1 0 0 0 0-1.4l-1.6-1.6a1 1 0 0 0-1.4 0L3 14a3 3 0 0 0 1 6z"/></svg>',
+        github: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>',
+      };
+
+      // ---- state ----
+      var tabs = [];       // [{ id }]
+      var activeId = null;
+
+      var sidebar = document.getElementById('sidebar');
+      var tabbar = document.getElementById('tabbar');
+      var content = document.getElementById('content');
+
+      // ---- build sidebar ----
+      function makeItem(id, label, icon, external) {
+        var b = document.createElement('button');
+        b.className = 'sitem';
+        b.innerHTML = GLYPH[icon] + '<span>' + label + '</span>';
+        b.onclick = function () {
+          if (external) { window.open(external, '_blank'); return; }
+          openTab(id);
+        };
+        return b;
+      }
+
+      var homeGroup = document.createElement('div');
+      homeGroup.className = 'sgroup-title';
+      homeGroup.textContent = '页面';
+      sidebar.appendChild(homeGroup);
+      sidebar.appendChild(makeItem('home', '主页', 'home'));
+      sidebar.appendChild(makeItem('morph', 'Morphicons 演示', 'morph'));
+
+      var errGroup = document.createElement('div');
+      errGroup.className = 'sgroup-title';
+      errGroup.textContent = '错误页';
+      sidebar.appendChild(errGroup);
+      sidebar.appendChild(makeItem('p403', '403 · 禁止访问', 'lock'));
+      sidebar.appendChild(makeItem('p404', '404 · 页面不存在', 'search'));
+      sidebar.appendChild(makeItem('p500', '500 · 服务器错误', 'wrench'));
+
+      var extGroup = document.createElement('div');
+      extGroup.className = 'sgroup-title';
+      extGroup.textContent = '外部';
+      sidebar.appendChild(extGroup);
+      sidebar.appendChild(makeItem(null, 'GitHub 仓库', 'github', 'https://github.com/areli-biclon/web'));
+
+      // ---- home inline content ----
+      var homeHTML =
+        '<div class="home-content">' +
+        '<h1>Web</h1>' +
+        '<p class="sub">个人网页集合 · 扁平化主页</p>' +
+        '<div class="home-grid">' +
+        '<button class="htile" onclick="window.__open && window.__open(\'morph\')">' +
+        '<span class="icon">' + GLYPH.morph + '</span>' +
+        '<span class="name">Morphicons 演示</span>' +
+        '<span class="desc">图标平滑形变 · 单文件离线可用</span></button>' +
+        '<button class="htile" onclick="window.__open && window.__open(\'github\')">' +
+        '<span class="icon">' + GLYPH.github + '</span>' +
+        '<span class="name">GitHub 仓库</span>' +
+        '<span class="desc">areli-biclon/web · 源码与部署</span></button>' +
+        '</div>' +
+        '<p class="foot-note">基于 GitHub Pages · Windows 扁平风格 · 3:7 侧栏标签布局</p>' +
+        '</div>';
+
+      // ---- tabs ----
+      function renderTabs() {
+        tabbar.innerHTML = '';
+        tabs.forEach(function (t) {
+          var b = document.createElement('button');
+          b.className = 'tab' + (t.id === activeId ? ' active' : '');
+          var span = document.createElement('span');
+          span.textContent = PAGES[t.id].title;
+          var x = document.createElement('span');
+          x.className = 'close';
+          x.textContent = '\u00d7';
+          x.onclick = function (e) { e.stopPropagation(); closeTab(t.id); };
+          b.appendChild(span);
+          b.appendChild(x);
+          b.onclick = function () { setActive(t.id); };
+          tabbar.appendChild(b);
+        });
+        renderContent();
+      }
+
+      function renderContent() {
+        content.innerHTML = '';
+        if (!activeId) return;
+        if (activeId === 'home') {
+          var pg = document.createElement('div');
+          pg.className = 'pg active';
+          pg.innerHTML = homeHTML;
+          content.appendChild(pg);
+          return;
+        }
+        var frame = document.createElement('iframe');
+        frame.src = SLUGS[activeId];
+        frame.style.background = '#fff';
+        content.appendChild(frame);
+      }
+
+      function openTab(id) {
+        if (id !== 'home' && id !== 'morph' && id !== 'p403' && id !== 'p404' && id !== 'p500') return;
+        if (tabs.indexOf(id) === -1) {
+          tabs.push(id);
+        }
+        activeId = id;
+        renderTabs();
+      }
+
+      function closeTab(id) {
+        var i = tabs.indexOf(id);
+        if (i === -1) return;
+        tabs.splice(i, 1);
+        if (activeId === id) {
+          activeId = tabs.length ? tabs[tabs.length - 1] : null;
+        }
+        renderTabs();
+      }
+
+      function setActive(id) { activeId = id; renderTabs(); }
+
+      // expose for inline home tiles
+      window.__open = function (slug) {
+        if (slug === 'github') { window.open('https://github.com/areli-biclon/web', '_blank'); return; }
+        openTab('morph'); // only morph shortcut
+      };
+
+      // ---- clock ----
+      var clockEl = document.getElementById('clock');
       var pad = function (n) { return (n < 10 ? '0' : '') + n; };
       var tick = function () {
         var d = new Date();
-        el.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
+        clockEl.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
       };
       tick();
       setInterval(tick, 1000);
+
+      // ---- init: 主页 tab + Morphicons tab ----
+      openTab('home');
+      openTab('morph');
     })();
   </script>
 </body>
