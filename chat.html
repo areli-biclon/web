@@ -4,8 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>聊天 v3 — Web</title>
-<meta name="description" content="人与人实时点对点聊天 (WebRTC)">
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<meta name="description" content="人与人实时聊天 · Cloudflare">
 <style>
   :root {
     --accent: #0078d7;
@@ -58,19 +57,6 @@
     color: var(--text);
   }
   .p-input:focus { border-color: var(--accent); }
-  button {
-    cursor: pointer;
-    padding: 6px 14px;
-    border: 1px solid var(--border);
-    background: #fff;
-    font-size: 12.5px;
-    font-family: inherit;
-    color: var(--text);
-    flex: none;
-  }
-  button.primary { background: var(--accent); border: none; color: #fff; }
-  button.primary:hover { background: var(--accent-dark); }
-  button.ghost:hover { background: #e8edf2; }
   .hint { font-size: 11px; color: var(--text-2); margin: 5px 2px 0; }
 
   #chat {
@@ -90,6 +76,7 @@
     word-break: break-word;
     clear: both;
   }
+  .msg .who { display: block; font-size: 11px; margin-bottom: 3px; opacity: 0.75; }
   .msg.them { float: left; background: #eff1f3; color: var(--text); border: 1px solid var(--border); }
   .msg.me { float: right; background: var(--accent); color: #fff; }
   .msg.sys { float: none; margin: 6px auto; max-width: none; text-align: center; font-size: 11px; color: var(--text-2); background: none; border: none; clear: both; }
@@ -103,6 +90,19 @@
   }
   #msgInput { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--border); font-size: 13px; outline: none; font-family: inherit; }
   #msgInput:focus { border-color: var(--accent); }
+  button {
+    cursor: pointer;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-size: 12.5px;
+    font-family: inherit;
+    flex: none;
+  }
+  button:hover { background: var(--accent-dark); }
+  button:disabled { background: #9fc4e8; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -114,45 +114,35 @@
 
   <div id="panel">
     <div class="p-row">
-      <span class="p-label">我的 ID</span>
-      <input class="p-input" id="myId" readonly>
-      <button class="ghost" id="copyBtn">复制</button>
+      <span class="p-label">昵称</span>
+      <input class="p-input" id="name" placeholder="留空则使用随机昵称">
     </div>
-    <div class="p-row">
-      <span class="p-label">对方 ID</span>
-      <input class="p-input" id="targetId" placeholder="粘贴对方页面的 ID">
-      <button class="primary" id="connectBtn">连接</button>
-    </div>
-    <p class="hint">两端分别打开此页,互填对方的 ID 即可直连对话。WebRTC 点对点传输,不经过服务器存储。需要联网。</p>
+    <p class="hint">打开本页即自动进入聊天室,多人实时互通。消息经 Cloudflare 实时转发,不留存。</p>
   </div>
 
   <div id="chat"></div>
 
   <div id="inputbar">
     <input id="msgInput" placeholder="输入消息,回车发送">
-    <button class="primary" id="sendBtn">发送</button>
+    <button id="sendBtn">发送</button>
   </div>
 
   <script>
     (function () {
       'use strict';
-      var peer = null, conn = null, peerReady = false, pendingId = null;
-      var myId = 'chat' + Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 4);
+
+      var WS_URL = 'CHANGE_ME_TO_YOUR_WORKER_URL';
+      var ws = null;
+      var closedByMe = false;
+      var reconnectTimer = null;
+      var name = '访客' + Math.random().toString(36).slice(2, 6);
 
       var dot = document.getElementById('dot');
       var statusText = document.getElementById('statusText');
       var chat = document.getElementById('chat');
-      var myIdEl = document.getElementById('myId');
-      var targetIdEl = document.getElementById('targetId');
+      var nameEl = document.getElementById('name');
       var msgInput = document.getElementById('msgInput');
-
-      myIdEl.value = myId;
-      document.getElementById('copyBtn').onclick = function () {
-        if (navigator.clipboard) { navigator.clipboard.writeText(myId); }
-        this.textContent = '已复制';
-        var self = this;
-        setTimeout(function () { self.textContent = '复制'; }, 1200);
-      };
+      var sendBtn = document.getElementById('sendBtn');
 
       function setStatus(txt, cls) {
         statusText.textContent = txt;
@@ -161,99 +151,89 @@
 
       function log(text, mine) {
         var d = document.createElement('div');
-        d.className = 'msg' + (mine === null ? ' sys' : (mine ? ' me' : ' them'));
-        d.textContent = text;
+        if (mine === null) {
+          d.className = 'msg sys';
+          d.textContent = text;
+        } else {
+          d.className = 'msg ' + (mine ? 'me' : 'them');
+          if (!mine) {
+            var who = document.createElement('span');
+            who.className = 'who';
+            who.textContent = text.from;
+            d.appendChild(who);
+          }
+          var body = document.createElement('span');
+          body.textContent = text.text;
+          if (!mine) body.style.whiteSpace = 'pre-wrap';
+          d.appendChild(body);
+        }
         chat.appendChild(d);
         chat.scrollTop = chat.scrollHeight;
       }
 
-      function wire(c) {
-        c.on('open', function () {
-          setStatus('已连接 → ' + c.peer, 'on');
-          log('— 已建立连接 —', null);
-        });
-        c.on('data', function (d) { if (typeof d === 'string') log(d, false); });
-        c.on('close', function () {
-          if (conn === c) conn = null;
-          setStatus('对方已断开', 'busy');
-          log('— 连接已断开 —', null);
-        });
-        c.on('error', function (e) { setStatus('连接错误', 'busy'); });
-      }
-
-      function doConnect(id) {
-        pendingId = null;
-        setStatus('正在连接…', 'busy');
-        try {
-          conn = peer.connect(id, { reliable: true });
-          wire(conn);
-          setStatus('等待对方接受…', 'busy');
-        } catch (e) {
-          setStatus('连接失败', 'busy');
-        }
+      function wsUrl() {
+        var u = WS_URL.trim().replace(/\/+$/, '');
+        if (!u || u.indexOf('CHANGE_ME') !== -1) return null;
+        return u.replace(/^http/, 'ws') + '/ws';
       }
 
       function connect() {
-        var id = targetIdEl.value.trim();
-        if (!id) return;
-        if (!peerReady) { pendingId = id; setStatus('等待就绪后自动连接…', 'busy'); return; }
-        doConnect(id);
+        var u = wsUrl();
+        if (!u) {
+          setStatus('未配置 Worker 地址', 'busy');
+          return;
+        }
+        setStatus('连接中…', 'busy');
+        var s = new WebSocket(u);
+        ws = s;
+        closedByMe = false;
+        s.onopen = function () {
+          setStatus('已连接', 'on');
+          if (s !== ws) return;
+        };
+        s.onmessage = function (e) {
+          if (s !== ws) return;
+          var d;
+          try { d = JSON.parse(e.data); } catch (err) { return; }
+          if (d.type === 'msg') log(d, false);
+          else if (d.type === 'sys') log(d.text, null);
+        };
+        s.onclose = function () {
+          if (s !== ws) return;
+          if (!closedByMe) {
+            setStatus('已断开,3 秒后重连…', 'busy');
+            clearTimeout(reconnectTimer);
+            reconnectTimer = setTimeout(connect, 3000);
+          } else {
+            setStatus('已停止', '');
+          }
+        };
+        s.onerror = function () {
+          if (s !== ws) return;
+          setStatus('网络错误', 'busy');
+        };
       }
-
-      document.getElementById('connectBtn').onclick = connect;
-      targetIdEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') connect(); });
 
       function send() {
         var t = msgInput.value.trim();
         if (!t) return;
-        if (!conn || !conn.open) {
-          log('尚未连接,无法发送', null);
+        if (!ws || ws.readyState !== 1) {
+          log({ from: '', text: '尚未连接,无法发送' }, null);
           setStatus('尚未连接', 'busy');
           return;
         }
-        try {
-          conn.send(t);
-          log(t, true);
-          msgInput.value = '';
-        } catch (e) {
-          log('发送失败: ' + (e && e.message ? e.message : String(e)), null);
-          setStatus('发送失败', 'busy');
-        }
+        var val = nameEl.value.trim();
+        if (val) name = val.slice(0, 20);
+        ws.send(JSON.stringify({ type: 'msg', from: name, text: t }));
+        log({ from: '我 (' + name + ')', text: t }, true);
+        msgInput.value = '';
       }
 
-      document.getElementById('sendBtn').onclick = send;
+      sendBtn.onclick = send;
       msgInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') send(); });
 
-      if (typeof Peer === 'undefined') {
-        setStatus('无法加载聊天库(需要联网)', 'busy');
-        return;
-      }
-
-      try {
-        peer = new Peer(myId);
-        peer.on('open', function () {
-          peerReady = true;
-          setStatus('在线,等待对方连接或填入对方 ID', 'on');
-          if (pendingId) doConnect(pendingId);
-        });
-        peer.on('connection', function (c) {
-          if (conn && c.peer === conn.peer) return;
-          conn = c;
-          wire(c);
-          setStatus('对方已连入,等待连接确立', 'busy');
-        });
-        peer.on('disconnected', function () {
-          peerReady = false;
-          setStatus('与信令服务器断开,尝试重连…', 'busy');
-          if (peer && typeof peer.reconnect === 'function') peer.reconnect();
-        });
-        peer.on('error', function (e) {
-          if (e && e.type === 'peer-unavailable') setStatus('对方 ID 无效或不在线', 'busy');
-          else setStatus('网络错误', 'busy');
-        });
-      } catch (e) {
-        setStatus('初始化失败', 'busy');
-      }
+      setStatus('连接中…', 'busy');
+      connect();
     })();
   </script>
 </body>
