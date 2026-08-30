@@ -206,7 +206,7 @@
       function send() {
         var t = msgInput.value.trim();
         if (!t) return;
-        if (!conn || typeof conn.open !== 'function' || !conn.open) {
+        if (!conn || !conn.open) {
           log('尚未连接,无法发送', null);
           setStatus('尚未连接', 'busy');
           return;
