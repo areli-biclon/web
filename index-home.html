@@ -13,8 +13,9 @@
     --border: #e2e2e2;
     --text: #1b1b1b;
     --text-2: #5f5f5f;
-    --accent: #0067c0;
-    --accent-soft: #e3f0fa;
+    --accent: #0078d7;            /* Windows 10 经典蓝 */
+    --accent-dark: #106ebe;
+    --accent-soft: #dbe9f6;
     --shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     font-family: 'Segoe UI Variable', 'Segoe UI', -apple-system, BlinkMacSystemFont,
       'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -24,22 +25,15 @@
   body {
     background: var(--bg);
     color: var(--text);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
+    overflow: hidden;
   }
 
   .window {
     width: 100%;
-    max-width: 1080px;
     height: 100%;
-    max-height: 760px;
     display: flex;
     flex-direction: column;
     background: var(--surface);
-    border: 1px solid var(--border);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
     overflow: hidden;
   }
 
@@ -173,7 +167,7 @@
   .home-grid {
     margin-top: 26px;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 240px));
     gap: 12px;
   }
   .htile {
@@ -181,24 +175,29 @@
     flex-direction: column;
     gap: 10px;
     align-items: flex-start;
-    padding: 16px 14px;
-    background: #fff;
-    border: 1px solid var(--border);
-    color: var(--text);
-    text-decoration: none;
-    cursor: pointer;
-    transition: border-color 0.12s, box-shadow 0.12s;
+    padding: 18px 16px 15px;
+    background: var(--accent);            /* Windows 10 经典蓝磁贴 */
+    color: #fff;
+    border: none;
+    cursor: grab;
+    transition: background 0.12s, transform 0.12s;
     font-family: inherit;
     text-align: left;
+    min-width: 180px;
+    user-select: none;
   }
-  .htile:hover { border-color: var(--accent); box-shadow: var(--shadow); }
+  .htile:hover { background: var(--accent-dark); }
+  .htile:active { cursor: grabbing; transform: scale(0.98); }
+  .htile.dragging { opacity: 0.5; }
+  .htile.over { outline: 2px solid #fff; outline-offset: -2px; }
   .htile .icon {
     width: 40px; height: 40px;
     display: flex; align-items: center; justify-content: center;
   }
-  .htile .icon svg { width: 22px; height: 22px; color: var(--text-2); }
-  .htile .name { font-size: 13px; font-weight: 500; }
-  .htile .desc { font-size: 11.5px; color: var(--text-2); line-height: 1.5; }
+  .htile .icon svg { width: 26px; height: 26px; color: #fff; }
+  .htile .name { font-size: 13px; font-weight: 600; }
+  .htile .desc { font-size: 11.5px; color: rgba(255, 255, 255, 0.78); line-height: 1.5; }
+  .tile-hint { margin-top: 14px; font-size: 11px; color: var(--text-2); }
   .foot-note {
     margin-top: 26px;
     font-size: 11.5px;
@@ -287,23 +286,90 @@
       sidebar.appendChild(extGroup);
       sidebar.appendChild(makeItem(null, 'GitHub 仓库', 'github', 'https://github.com/areli-biclon/web'));
 
-      // ---- home inline content ----
-      var homeHTML =
-        '<div class="home-content">' +
-        '<h1>Web</h1>' +
-        '<p class="sub">个人网页集合 · 扁平化主页</p>' +
-        '<div class="home-grid">' +
-        '<button class="htile" onclick="window.__open && window.__open(\'morph\')">' +
-        '<span class="icon">' + GLYPH.morph + '</span>' +
-        '<span class="name">Morphicons 演示</span>' +
-        '<span class="desc">图标平滑形变 · 单文件离线可用</span></button>' +
-        '<button class="htile" onclick="window.__open && window.__open(\'github\')">' +
-        '<span class="icon">' + GLYPH.github + '</span>' +
-        '<span class="name">GitHub 仓库</span>' +
-        '<span class="desc">areli-biclon/web · 源码与部署</span></button>' +
-        '</div>' +
-        '<p class="foot-note">基于 GitHub Pages · Windows 扁平风格 · 3:7 侧栏标签布局</p>' +
-        '</div>';
+      // ---- home swappable tiles (Win10 blue) ----
+      var HOMETILES = [
+        { id: 'morph', name: 'Morphicons 演示', desc: '图标平滑形变 · 单文件离线可用', glyph: GLYPH.morph, open: function () { openTab('morph'); } },
+        { id: 'github', name: 'GitHub 仓库', desc: 'areli-biclon/web · 源码与部署', glyph: GLYPH.github, open: function () { window.open('https://github.com/areli-biclon/web', '_blank'); } },
+      ];
+      var KEY = 'web-tiles';
+
+      function tileOrder() {
+        var stored;
+        try { stored = JSON.parse(localStorage.getItem(KEY)); } catch (e) { stored = null; }
+        if (!Array.isArray(stored)) stored = HOMETILES.map(function (t) { return t.id; });
+        return stored.filter(function (id) { return HOMETILES.some(function (t) { return t.id === id; }); });
+      }
+      function saveOrder() {
+        var ids = [];
+        document.querySelectorAll('.htile').forEach(function (el) { ids.push(el.dataset.id); });
+        localStorage.setItem(KEY, JSON.stringify(ids));
+      }
+
+      var dragId = null;
+
+      function renderHome() {
+        var pg = document.createElement('div');
+        pg.className = 'pg active';
+        pg.innerHTML =
+          '<div class="home-content">' +
+          '<h1>Web</h1>' +
+          '<p class="sub">个人网页集合 · 扁平化主页</p>' +
+          '<div class="home-grid"></div>' +
+          '<p class="tile-hint">拖动磁贴可交换排列,顺序会记住</p>' +
+          '<p class="foot-note">基于 GitHub Pages · Windows 经典蓝磁贴风格</p>' +
+          '</div>';
+
+        var grid = pg.querySelector('.home-grid');
+        tileOrder().forEach(function (id) {
+          grid.appendChild(makeTile(HOMETILES.filter(function (t) { return t.id === id; })[0]));
+        });
+        content.appendChild(pg);
+      }
+
+      function makeTile(t) {
+        var b = document.createElement('button');
+        b.className = 'htile';
+        b.draggable = true;
+        b.dataset.id = t.id;
+        b.innerHTML = '<span class="icon">' + t.glyph + '</span>' +
+          '<span class="name">' + t.name + '</span>' +
+          '<span class="desc">' + t.desc + '</span>';
+
+        b.addEventListener('dragstart', function () {
+          dragId = t.id;
+          b.classList.add('dragging');
+        });
+        b.addEventListener('dragend', function () {
+          dragId = null;
+          b.classList.remove('dragging');
+          document.querySelectorAll('.htile').forEach(function (el) { el.classList.remove('over'); });
+          saveOrder();
+          renderContent();
+        });
+        b.addEventListener('dragover', function (e) {
+          e.preventDefault();
+          if (!dragId || dragId === t.id) return;
+          document.querySelectorAll('.htile').forEach(function (el) { el.classList.remove('over'); });
+          b.classList.add('over');
+        });
+        b.addEventListener('drop', function (e) {
+          e.preventDefault();
+          if (!dragId || dragId === t.id) return;
+          var from = document.querySelector('.htile[data-id="' + dragId + '"]');
+          var to = b;
+          var parent = from.parentNode;
+          if (!parent || !to) return;
+          var els = Array.prototype.slice.call(parent.children);
+          var fi = els.indexOf(from);
+          var ti = els.indexOf(to);
+          if (fi < ti) { parent.insertBefore(from, to.nextSibling); }
+          else { parent.insertBefore(from, to); }
+          document.querySelectorAll('.htile').forEach(function (el) { el.classList.remove('over'); });
+        });
+
+        b.onclick = function () { if (!dragId) t.open(); };
+        return b;
+      }
 
       // ---- tabs ----
       function renderTabs() {
@@ -329,10 +395,7 @@
         content.innerHTML = '';
         if (!activeId) return;
         if (activeId === 'home') {
-          var pg = document.createElement('div');
-          pg.className = 'pg active';
-          pg.innerHTML = homeHTML;
-          content.appendChild(pg);
+          renderHome();
           return;
         }
         var frame = document.createElement('iframe');
@@ -361,12 +424,6 @@
       }
 
       function setActive(id) { activeId = id; renderTabs(); }
-
-      // expose for inline home tiles
-      window.__open = function (slug) {
-        if (slug === 'github') { window.open('https://github.com/areli-biclon/web', '_blank'); return; }
-        openTab('morph'); // only morph shortcut
-      };
 
       // ---- clock ----
       var clockEl = document.getElementById('clock');
