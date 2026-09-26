@@ -42,13 +42,19 @@ function send(res, status, body, type) {
 }
 
 function notFound(res) {
-  send(res, 404,
-    `<!DOCTYPE html><meta charset="utf-8"><title>404</title>
-     <body style="background:#0B0E14;color:#9AA3B5;font-family:sans-serif;
-     display:grid;place-items:center;height:100vh;margin:0">
-     <div style="text-align:center"><div style="font-size:72px;color:#FF7A45;font-weight:900">404</div>
-     <p>资源不存在 · <a href="/" style="color:#FFC53D">返回首页</a></p></div>`,
-    'text/html; charset=utf-8');
+  // 优先使用 public/404.html(与 Cloudflare Pages 的 404 约定一致)
+  fs.readFile(path.join(PUBLIC_DIR, '404.html'), (err, data) => {
+    if (err) {
+      return send(res, 404,
+        `<!DOCTYPE html><meta charset="utf-8"><title>404</title>
+         <body style="background:#0B0E14;color:#9AA3B5;font-family:sans-serif;
+         display:grid;place-items:center;height:100vh;margin:0">
+         <div style="text-align:center"><div style="font-size:72px;color:#FF7A45;font-weight:900">404</div>
+         <p>资源不存在 · <a href="/" style="color:#FFC53D">返回首页</a></p></div>`,
+        'text/html; charset=utf-8');
+    }
+    send(res, 404, data, 'text/html; charset=utf-8');
+  });
 }
 
 const server = http.createServer((req, res) => {

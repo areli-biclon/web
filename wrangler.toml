@@ -1,0 +1,5 @@
+# Cloudflare Pages 部署配置
+# Git 集成会自动读取本文件:无构建命令,直接发布 public/ 目录。
+name = "web"
+compatibility_date = "2026-09-01"
+pages_build_output_dir = "public"
